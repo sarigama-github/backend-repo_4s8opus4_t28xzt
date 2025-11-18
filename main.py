@@ -129,6 +129,89 @@ def list_journal():
     return docs
 
 
+# ---------- Seed Minimal Content ----------
+
+@app.post("/api/seed")
+def seed_minimal():
+    """Insert a minimal set of sample products and lookbook entries if empty.
+    Safe to call multiple times; avoids duplicate slugs.
+    """
+    inserted = {"products": 0, "lookbook": 0, "journal": 0}
+
+    # Products
+    existing_products = {p.get("slug") for p in get_documents("product")}
+    samples = [
+        Product(
+            title="Selene Sheath Dress",
+            slug="selene-sheath-dress",
+            description="A weightless satin silhouette with lunar drape.",
+            price=680.0,
+            category="Ready-to-Wear",
+            images=[
+                "https://images.unsplash.com/photo-1542060748-10c28b62716d?w=1400&q=80&auto=format&fit=crop"
+            ],
+            glb_url=None,
+            colorways=["Lunar Blush", "Eclipse Black"],
+            sizes=["XS", "S", "M", "L"],
+            co2_saved_kg=2.4,
+            in_stock=True,
+        ),
+        Product(
+            title="Nova Organza Gown",
+            slug="nova-organza-gown",
+            description="Ethereal organza with hand-finished moonsheen.",
+            price=1450.0,
+            category="Occasion",
+            images=[
+                "https://images.unsplash.com/photo-1520975954732-35dd226f1e9c?w=1400&q=80&auto=format&fit=crop"
+            ],
+            glb_url=None,
+            colorways=["Iridescent Pearl"],
+            sizes=["S", "M", "L"],
+            co2_saved_kg=5.1,
+            in_stock=True,
+        ),
+    ]
+    for p in samples:
+        if p.slug not in existing_products:
+            create_document("product", p)
+            inserted["products"] += 1
+
+    # Lookbook
+    existing_lb = {e.get("slug") for e in get_documents("lookbookentry")}
+    looks = [
+        LookbookEntry(
+            season="fall-24",
+            title="Moonrise Over Silk",
+            slug="moonrise-over-silk",
+            image="https://images.unsplash.com/photo-1503342394123-480259ab08e2?w=1400&q=80&auto=format&fit=crop",
+            product_slugs=["selene-sheath-dress"],
+            order=1,
+        )
+    ]
+    for lb in looks:
+        if lb.slug not in existing_lb:
+            create_document("lookbookentry", lb)
+            inserted["lookbook"] += 1
+
+    # Journal (optional minimal)
+    existing_posts = {j.get("slug") for j in get_documents("journalpost")}
+    posts = [
+        JournalPost(
+            title="On Weightless Femininity",
+            slug="on-weightless-femininity",
+            cover="https://images.unsplash.com/photo-1503342217505-b0a15cf70489?w=1400&q=80&auto=format&fit=crop",
+            content=None,
+        )
+    ]
+    for jp in posts:
+        if jp.slug not in existing_posts:
+            create_document("journalpost", jp)
+            inserted["journal"] += 1
+
+    return {"ok": True, "inserted": inserted}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
